@@ -70,6 +70,14 @@
     "test:watch:all": "jest --watchAll",
     "test:clearCache": "jest --clear-cache",
     "update:dev:chrome": "./scripts/update-manifest-dev.sh",
-    "update:beta:chrome": "./scripts/update-manifest-beta.sh"
+    "update:beta:chrome": "./scripts/update-manifest-beta.sh",
+    "inject:selfhost": "node scripts/inject-selfhost-config.js",
+    "inject:restore": "node scripts/restore-environment-file.js",
+    "dist:selfhost:chrome": "npm run inject:selfhost && npm run dist:chrome",
+    "dist:selfhost:edge": "npm run inject:selfhost && npm run dist:edge",
+    "dist:selfhost:firefox": "npm run inject:selfhost && npm run dist:firefox",
+    "dist:selfhost:opera": "npm run inject:selfhost && npm run dist:opera",
+    "dist:selfhost:firefox:mv3": "cross-env MANIFEST_VERSION=3 npm run dist:selfhost:firefox",
+    "dist:selfhost:opera:mv3": "cross-env MANIFEST_VERSION=3 npm run dist:selfhost:opera"
   }
 }

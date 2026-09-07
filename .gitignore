@@ -3,6 +3,7 @@
 Thumbs.db
 .claude/worktrees/
 .worktrees/
+apps/browser/scripts/.selfhost-orig/
 
 # IDEs and editors
 .idea/
