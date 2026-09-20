@@ -1,0 +1,271 @@
+name: Build Browser Extension
+
+on:
+  push:
+    branches:
+      - 'main'
+      - 'rc'
+      - 'release/**'
+    paths:
+      - 'apps/browser/**'
+      - 'libs/**'
+      - '.github/workflows/build-browser-extension.yml'
+  pull_request:
+    types: [opened, synchronize, reopened]
+    paths:
+      - 'apps/browser/**'
+      - 'libs/**'
+      - '.github/workflows/build-browser-extension.yml'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to use for the build'
+        required: false
+        type: string
+      selfHostUrl:
+        description: 'Self-hosted server base URL (optional, builds official cloud version if empty)'
+        required: false
+        type: string
+        default: ''
+
+defaults:
+  run:
+    shell: bash
+
+permissions:
+  contents: read
+
+jobs:
+  setup:
+    name: Setup
+    runs-on: ubuntu-22.04
+    outputs:
+      node_version: ${{ steps.retrieve-node-version.outputs.node_version }}
+      version: ${{ steps.get-version.outputs.version }}
+    steps:
+      - name: Check out repo
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+        with:
+          persist-credentials: false
+
+      - name: Get Node Version
+        id: retrieve-node-version
+        run: |
+          NODE_NVMRC=$(cat .nvmrc)
+          NODE_VERSION=${NODE_NVMRC/v/''}
+          echo "node_version=$NODE_VERSION" >> "$GITHUB_OUTPUT"
+
+      - name: Get Version
+        id: get-version
+        run: |
+          if [ -n "${{ github.event.inputs.version }}" ]; then
+            echo "version=${{ github.event.inputs.version }}" >> "$GITHUB_OUTPUT"
+          else
+            VERSION=$(node -p "require('./package.json').version")
+            SHA="${{ github.sha }}"
+            SHORT_SHA=${SHA:0:7}
+            echo "version=${VERSION}-${SHORT_SHA}" >> "$GITHUB_OUTPUT"
+          fi
+
+  build-chrome-mv3:
+    name: Build Chrome (MV3)
+    runs-on: ubuntu-22.04
+    needs:
+      - setup
+    steps:
+      - name: Check out repo
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+        with:
+          persist-credentials: false
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ needs.setup.outputs.node_version }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: |
+          npm ci
+
+      - name: Build Chrome extension (MV3)
+        working-directory: apps/browser
+        run: |
+          if [ -n "${{ github.event.inputs.selfHostUrl }}" ]; then
+            npm run inject:selfhost
+          fi
+          npm run dist:chrome
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: bitwarden-chrome-extension-mv3-${{ needs.setup.outputs.version }}
+          path: apps/browser/dist/dist-chrome.zip
+          if-no-files-found: error
+          retention-days: 30
+
+  build-edge-mv3:
+    name: Build Edge (MV3)
+    runs-on: ubuntu-22.04
+    needs:
+      - setup
+    steps:
+      - name: Check out repo
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+        with:
+          persist-credentials: false
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ needs.setup.outputs.node_version }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: |
+          npm ci
+
+      - name: Build Edge extension (MV3)
+        working-directory: apps/browser
+        run: |
+          if [ -n "${{ github.event.inputs.selfHostUrl }}" ]; then
+            npm run inject:selfhost
+          fi
+          npm run dist:edge
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: bitwarden-edge-extension-mv3-${{ needs.setup.outputs.version }}
+          path: apps/browser/dist/dist-edge.zip
+          if-no-files-found: error
+          retention-days: 30
+
+  build-firefox-mv3:
+    name: Build Firefox (MV3)
+    runs-on: ubuntu-22.04
+    needs:
+      - setup
+    steps:
+      - name: Check out repo
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+        with:
+          persist-credentials: false
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ needs.setup.outputs.node_version }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: |
+          npm ci
+
+      - name: Build Firefox extension (MV3)
+        working-directory: apps/browser
+        run: |
+          if [ -n "${{ github.event.inputs.selfHostUrl }}" ]; then
+            npm run inject:selfhost
+          fi
+          npm run dist:firefox:mv3
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: bitwarden-firefox-extension-mv3-${{ needs.setup.outputs.version }}
+          path: apps/browser/dist/dist-firefox.zip
+          if-no-files-found: error
+          retention-days: 30
+
+  build-opera-mv3:
+    name: Build Opera (MV3)
+    runs-on: ubuntu-22.04
+    needs:
+      - setup
+    steps:
+      - name: Check out repo
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+        with:
+          persist-credentials: false
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ needs.setup.outputs.node_version }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: |
+          npm ci
+
+      - name: Build Opera extension (MV3)
+        working-directory: apps/browser
+        run: |
+          if [ -n "${{ github.event.inputs.selfHostUrl }}" ]; then
+            npm run inject:selfhost
+          fi
+          npm run dist:opera:mv3
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: bitwarden-opera-extension-mv3-${{ needs.setup.outputs.version }}
+          path: apps/browser/dist/dist-opera.zip
+          if-no-files-found: error
+          retention-days: 30
+
+  build-selfhost:
+    name: Build Self-Hosted Bundle
+    runs-on: ubuntu-22.04
+    needs:
+      - setup
+    if: github.event.inputs.selfHostUrl != ''
+    steps:
+      - name: Check out repo
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+        with:
+          persist-credentials: false
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ needs.setup.outputs.node_version }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: |
+          npm ci
+
+      - name: Inject Self-Host URL
+        working-directory: apps/browser
+        env:
+          SELF_HOST_URL: ${{ github.event.inputs.selfHostUrl }}
+        run: |
+          npm run inject:selfhost
+
+      - name: Build Chrome Extension (MV3)
+        working-directory: apps/browser
+        run: |
+          npm run dist:chrome
+
+      - name: Build Edge Extension (MV3)
+        working-directory: apps/browser
+        run: |
+          npm run dist:edge
+
+      - name: Build Firefox Extension (MV3)
+        working-directory: apps/browser
+        run: |
+          npm run dist:firefox:mv3
+
+      - name: Upload Self-Hosted Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: bitwarden-selfhost-all-browsers-mv3-${{ needs.setup.outputs.version }}
+          path: |
+            apps/browser/dist/dist-chrome.zip
+            apps/browser/dist/dist-edge.zip
+            apps/browser/dist/dist-firefox.zip
+          if-no-files-found: error
+          retention-days: 30
